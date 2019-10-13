@@ -3,7 +3,10 @@ package com.osatechs.rest.webservices.restfulwebservices.user;
 import java.net.URI;
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +15,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.hateoas.mvc.ControllerLinkBuilder;
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
 @RestController
 public class UserResource {
@@ -21,15 +26,21 @@ public class UserResource {
 	
 	@GetMapping("/users")
 	public List<User> getAllUser() {
-		return service.findAll();		
+		return service.findAll();	
+//		System.out.println(service.findAll());
+//		return null;
 	}
 	
 	@GetMapping("/users/{id}")
-	public User getUser(@PathVariable int id) {
+	public Resource<User> getUser(@PathVariable int id) {
 		User user = service.findOne(id);
 		if(user==null) 
 			throw new UserNotFoundException("No user with the id-"+id);
-		return user;
+		
+		Resource<User> resource = new Resource<User>(user);
+		ControllerLinkBuilder linkTo = ControllerLinkBuilder.linkTo(methodOn(this.getClass()).getAllUser());
+		resource.add(linkTo.withRel("all-users"));
+		return resource;
 		
 	}
 	
@@ -43,7 +54,7 @@ public class UserResource {
 	}
 	
 	@PostMapping("/users")
-	public ResponseEntity<Object> createUser(@RequestBody User user) {
+	public ResponseEntity<Object> createUser(@Valid @RequestBody User user) {
 		User savedUser = service.save(user);
 		
 		//Get current url and add /{id} to get new id
