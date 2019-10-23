@@ -25,6 +25,9 @@ public class UserJPAResource {
 	@Autowired
 	private UserRepository userRepository;
 	
+	@Autowired
+	private PostRepository postRepository;
+	
 	@GetMapping("/jpa/users")
 	public List<User> getAllUser() {
 		return userRepository.findAll();	
@@ -42,6 +45,37 @@ public class UserJPAResource {
 		ControllerLinkBuilder linkTo = ControllerLinkBuilder.linkTo(methodOn(this.getClass()).getAllUser());
 		resource.add(linkTo.withRel("all-users"));
 		return resource;
+		
+	}
+	
+	@GetMapping("/jpa/users/{id}/posts")
+	public List<Post> getUsersPost(@PathVariable int id) {
+		Optional<User> user = userRepository.findById(id);
+		if(!user.isPresent()) 
+			throw new UserNotFoundException("No user with the id-"+id);
+		
+		return user.get().getPosts();
+		
+	}
+	
+	@PostMapping("/jpa/users/{id}/posts")
+	public ResponseEntity<Object> createPost(@PathVariable int id,@RequestBody Post post) {
+		Optional<User> userOptional = userRepository.findById(id);
+		if(!userOptional.isPresent()) 
+			throw new UserNotFoundException("No user with the id-"+id);
+		
+		User user = userOptional.get();
+		
+		post.setUser(user);
+		
+		System.out.println(post);
+		System.out.println("That's ur post");
+		
+		postRepository.save(post);
+		
+		//Get current url and add /{id} to get new id
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/jpa/users/{id}/posts").buildAndExpand(post.getId()).toUri();
+		return ResponseEntity.created(location).build();
 		
 	}
 	
